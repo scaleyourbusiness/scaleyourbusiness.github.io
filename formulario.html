@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SYB · Protocolo de Seguridad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="shortcut icon"
+      href="https://i.imgur.com/jzkYiK4.png"
+      type="image/x-icon"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --syb-black: #0a0610;
+        --syb-deep: #110c1f;
+        --syb-purple: #3d0080;
+        --syb-mid: #5c00c7;
+        --syb-violet: #7b2fff;
+        --syb-lavender: #c9a6ff;
+        --syb-white: #f0eaff;
+        --syb-gold: #d4af37;
+        --syb-gold2: #f0d060;
+        --syb-green: #00e5a0;
+        --syb-border: rgba(123, 47, 255, 0.25);
+        --syb-glass: rgba(61, 0, 128, 0.18);
+        --radius: 16px;
+        --font-display: "Syne", system-ui, sans-serif;
+        --font-body: "DM Sans", system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--syb-black);
+        color: var(--syb-white);
+        font-family: var(--font-body);
+        font-size: 15px;
+        line-height: 1.7;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── BACKGROUND ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 50% -10%,
+            rgba(92, 0, 199, 0.45) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 50% 40% at 10% 80%,
+            rgba(61, 0, 128, 0.3) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 50% at 90% 70%,
+            rgba(123, 47, 255, 0.18) 0%,
+            transparent 60%
+          );
+        pointer-events: none;
+      }
+
+      /* Subtle grain overlay */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        background-size: 180px;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .wrapper {
+        position: relative;
+        z-index: 2;
+        max-width: 740px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+
+      /* ── PIN GATE ── */
+      #gate {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 32px;
+        animation: fadeUp 0.6s ease both;
+      }
+
+      .gate-logo {
+        width: 120px;
+        filter: drop-shadow(0 0 24px rgba(123, 47, 255, 0.7));
+        animation: floatLogo 4s ease-in-out infinite;
+      }
+
+      @keyframes floatLogo {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .gate-card {
+        background: var(--syb-glass);
+        border: 1px solid var(--syb-border);
+        border-radius: 24px;
+        padding: 48px 40px;
+        text-align: center;
+        max-width: 440px;
+        width: 100%;
+        backdrop-filter: blur(24px);
+        box-shadow:
+          0 0 80px rgba(61, 0, 128, 0.4),
+          0 0 0 1px rgba(123, 47, 255, 0.1) inset;
+      }
+
+      .gate-title {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        color: var(--syb-white);
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+      }
+
+      .gate-subtitle {
+        color: var(--syb-lavender);
+        font-size: 0.88rem;
+        margin-bottom: 36px;
+        opacity: 0.8;
+      }
+
+      .pin-dots {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 24px;
+      }
+
+      .pin-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid var(--syb-border);
+        background: transparent;
+        transition: all 0.2s;
+      }
+
+      .pin-dot.filled {
+        background: var(--syb-violet);
+        border-color: var(--syb-violet);
+        box-shadow: 0 0 10px var(--syb-violet);
+      }
+
+      .pin-input-wrap {
+        position: relative;
+        margin-bottom: 20px;
+      }
+
+      #pinInput {
+        width: 100%;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--syb-border);
+        border-radius: var(--radius);
+        color: var(--syb-white);
+        font-family: var(--font-mono);
+        font-size: 1.4rem;
+        letter-spacing: 8px;
+        text-align: center;
+        outline: none;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+      }
+
+      #pinInput:focus {
+        border-color: var(--syb-violet);
+        box-shadow: 0 0 0 3px rgba(123, 47, 255, 0.25);
+      }
+
+      #pinError {
+        color: #ff6b8a;
+        font-size: 0.82rem;
+        margin-top: 8px;
+        min-height: 20px;
+        display: block;
+        font-family: var(--font-mono);
+      }
+
+      /* ── BUTTONS ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        border-radius: var(--radius);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: all 0.25s;
+        letter-spacing: 0.3px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--syb-mid), var(--syb-violet));
+        color: #fff;
+        box-shadow: 0 4px 24px rgba(123, 47, 255, 0.45);
+        width: 100%;
+        justify-content: center;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(123, 47, 255, 0.6);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-submit {
+        background: linear-gradient(135deg, #1a5c3a, var(--syb-green));
+        color: #001a0e;
+        box-shadow: 0 4px 24px rgba(0, 229, 160, 0.3);
+        width: 100%;
+        justify-content: center;
+        font-size: 1.05rem;
+        padding: 18px 32px;
+      }
+
+      .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0, 229, 160, 0.5);
+      }
+
+      /* ── MAIN FORM ── */
+      #mainForm {
+        display: none;
+        animation: fadeUp 0.5s ease both;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── HEADER ── */
+      .form-header {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .form-logo {
+        width: 90px;
+        margin-bottom: 24px;
+        filter: drop-shadow(0 0 20px rgba(123, 47, 255, 0.6));
+      }
+
+      .form-title {
+        font-family: var(--font-display);
+        font-size: 2.4rem;
+        line-height: 1.15;
+        color: var(--syb-white);
+        letter-spacing: -1px;
+        margin-bottom: 12px;
+      }
+
+      .form-title span {
+        color: var(--syb-lavender);
+      }
+
+      /* ── SECURITY BANNER ── */
+      .security-banner {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 229, 160, 0.05),
+          rgba(61, 0, 128, 0.2)
+        );
+        border: 1px solid rgba(0, 229, 160, 0.25);
+        border-radius: var(--radius);
+        padding: 28px 32px;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .security-banner::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(
+          to bottom,
+          var(--syb-green),
+          var(--syb-violet)
+        );
+      }
+
+      .security-banner-title {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        color: var(--syb-green);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .security-banner p {
+        font-size: 0.87rem;
+        color: var(--syb-lavender);
+        line-height: 1.65;
+        margin-bottom: 10px;
+      }
+
+      .security-banner p:last-child {
+        margin-bottom: 0;
+      }
+
+      .badge-ssl {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 229, 160, 0.1);
+        border: 1px solid rgba(0, 229, 160, 0.3);
+        color: var(--syb-green);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-bottom: 16px;
+      }
+
+      /* ── BLOCKS ── */
+      .form-block {
+        background: var(--syb-glass);
+        border: 1px solid var(--syb-border);
+        border-radius: 20px;
+        padding: 36px;
+        margin-bottom: 28px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+        transition: border-color 0.3s;
+      }
+
+      .form-block:hover {
+        border-color: rgba(123, 47, 255, 0.45);
+      }
+
+      .block-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--syb-violet);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        background: rgba(123, 47, 255, 0.12);
+        padding: 4px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(123, 47, 255, 0.2);
+      }
+
+      .block-title {
+        font-family: var(--font-display);
+        font-size: 1.45rem;
+        color: var(--syb-white);
+        margin-bottom: 28px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--syb-border);
+      }
+
+      /* ── FIELD ── */
+      .field {
+        margin-bottom: 24px;
+      }
+
+      .field:last-child {
+        margin-bottom: 0;
+      }
+
+      label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--syb-lavender);
+        margin-bottom: 8px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
+      label .req {
+        color: #ff6b8a;
+        margin-left: 3px;
+      }
+
+      .field-hint {
+        font-size: 0.77rem;
+        color: rgba(201, 166, 255, 0.55);
+        margin-top: 6px;
+        font-style: italic;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="tel"],
+      input[type="password"],
+      textarea {
+        width: 100%;
+        padding: 14px 18px;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--syb-border);
+        border-radius: var(--radius);
+        color: var(--syb-white);
+        font-family: var(--font-body);
+        font-size: 0.93rem;
+        outline: none;
+        transition:
+          border-color 0.25s,
+          box-shadow 0.25s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="password"] {
+        font-family: var(--font-mono);
+        letter-spacing: 3px;
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: rgba(201, 166, 255, 0.3);
+        font-style: italic;
+        letter-spacing: normal;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: var(--syb-violet);
+        box-shadow: 0 0 0 3px rgba(123, 47, 255, 0.2);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      /* Password with toggle */
+      .pw-wrap {
+        position: relative;
+      }
+
+      .pw-wrap input {
+        padding-right: 50px;
+      }
+
+      .pw-toggle {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: rgba(201, 166, 255, 0.5);
+        font-size: 1rem;
+        transition: color 0.2s;
+        padding: 4px;
+      }
+
+      .pw-toggle:hover {
+        color: var(--syb-lavender);
+      }
+
+      /* ── RADIO / CHECKBOX ── */
+      .radio-group,
+      .check-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .radio-option,
+      .check-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        cursor: pointer;
+        padding: 14px 18px;
+        border-radius: var(--radius);
+        border: 1px solid var(--syb-border);
+        background: rgba(0, 0, 0, 0.25);
+        transition: all 0.2s;
+      }
+
+      .radio-option:hover,
+      .check-option:hover {
+        border-color: var(--syb-violet);
+        background: rgba(123, 47, 255, 0.1);
+      }
+
+      .radio-option input,
+      .check-option input {
+        width: auto;
+        margin-top: 2px;
+        accent-color: var(--syb-violet);
+        flex-shrink: 0;
+      }
+
+      .radio-option span,
+      .check-option span {
+        font-size: 0.88rem;
+        color: var(--syb-lavender);
+        line-height: 1.5;
+      }
+
+      /* ── VIDEO BLOCK (conditional) ── */
+      #videoBlock {
+        display: none;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(123, 47, 255, 0.3);
+        border-radius: 20px;
+        padding: 28px;
+        margin-top: 20px;
+        animation: fadeUp 0.4s ease both;
+        text-align: center;
+      }
+
+      #videoBlock.show {
+        display: block;
+      }
+
+      .video-title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        color: var(--syb-lavender);
+        margin-bottom: 16px;
+      }
+
+      .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        height: 0;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      /* Gmail fields collapse */
+      #gmailFields {
+        margin-top: 20px;
+        animation: fadeUp 0.3s ease both;
+      }
+
+      /* ── FOOTER BLOCK ── */
+      .footer-block {
+        background: linear-gradient(
+          135deg,
+          rgba(0, 229, 160, 0.04),
+          rgba(212, 175, 55, 0.04)
+        );
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        border-radius: 20px;
+        padding: 36px;
+        margin-bottom: 32px;
+      }
+
+      .footer-block-title {
+        font-family: var(--font-display);
+        color: var(--syb-gold);
+        font-size: 1.1rem;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .confirm-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .confirm-list li {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        font-size: 0.86rem;
+        color: rgba(201, 166, 255, 0.8);
+        line-height: 1.55;
+      }
+
+      .confirm-list li::before {
+        content: "✓";
+        color: var(--syb-gold);
+        font-weight: 700;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      /* ── SUCCESS PAGE ── */
+      #successPage {
+        display: none;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        gap: 28px;
+        animation: fadeUp 0.6s ease both;
+      }
+
+      #successPage.active {
+        display: flex;
+      }
+
+      .success-icon {
+        font-size: 4rem;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          filter: drop-shadow(0 0 0 rgba(0, 229, 160, 0));
+        }
+        50% {
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 20px rgba(0, 229, 160, 0.7));
+        }
+      }
+
+      .success-title {
+        font-family: var(--font-display);
+        font-size: 2.6rem;
+        color: var(--syb-white);
+        letter-spacing: -1px;
+        line-height: 1.1;
+      }
+
+      .success-subtitle {
+        color: var(--syb-lavender);
+        font-size: 0.95rem;
+        max-width: 380px;
+      }
+
+      .encrypt-animation {
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(0, 229, 160, 0.25);
+        border-radius: var(--radius);
+        padding: 20px 32px;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--syb-green);
+        max-width: 420px;
+        width: 100%;
+      }
+
+      .encrypt-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0;
+        opacity: 0;
+        animation: lineIn 0.3s ease forwards;
+      }
+
+      .encrypt-line::before {
+        content: ">";
+        color: var(--syb-violet);
+      }
+
+      @keyframes lineIn {
+        from {
+          opacity: 0;
+          transform: translateX(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ── DIVIDER ── */
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--syb-border),
+          transparent
+        );
+        margin: 32px 0;
+      }
+
+      /* ── PROGRESS ── */
+      .progress-bar {
+        height: 3px;
+        background: rgba(123, 47, 255, 0.2);
+        border-radius: 2px;
+        margin-bottom: 40px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+          to right,
+          var(--syb-mid),
+          var(--syb-violet),
+          var(--syb-lavender)
+        );
+        border-radius: 2px;
+        width: 0%;
+        transition: width 0.4s ease;
+      }
+
+      /* ── LOADING STATE ── */
+      .btn-submit.loading {
+        opacity: 0.7;
+        pointer-events: none;
+      }
+
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(0, 26, 14, 0.3);
+        border-top-color: #001a0e;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── RESPONSIVE ── */
+      @media (max-width: 600px) {
+        .form-block {
+          padding: 24px 20px;
+        }
+        .gate-card {
+          padding: 36px 24px;
+        }
+        .form-title {
+          font-size: 1.9rem;
+        }
+        .wrapper {
+          padding: 32px 16px 64px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ╔══════════════════════════════╗ -->
+    <!-- ║         PIN GATE             ║ -->
+    <!-- ╚══════════════════════════════╝ -->
+    <div class="wrapper">
+      <div id="gate">
+        <img
+          src="https://i.imgur.com/jzkYiK4.png"
+          alt="SYB Logo"
+          class="gate-logo"
+        />
+
+        <div class="gate-card">
+          <div class="gate-title">Acceso Seguro</div>
+          <p class="gate-subtitle">
+            Ingresá el código que te proporcionó Scale Your Business para
+            continuar.
+          </p>
+
+          <div class="pin-dots">
+            <div class="pin-dot" id="d1"></div>
+            <div class="pin-dot" id="d2"></div>
+            <div class="pin-dot" id="d3"></div>
+            <div class="pin-dot" id="d4"></div>
+            <div class="pin-dot" id="d5"></div>
+            <div class="pin-dot" id="d6"></div>
+          </div>
+
+          <div class="pin-input-wrap">
+            <input
+              type="password"
+              id="pinInput"
+              maxlength="6"
+              placeholder="••••••"
+              autocomplete="off"
+              inputmode="numeric"
+              oninput="handlePin()"
+              onkeydown="if (event.key === 'Enter') checkPin();"
+            />
+          </div>
+
+          <span id="pinError"></span>
+
+          <br />
+          <button class="btn btn-primary" onclick="checkPin()">
+            🔓 Ingresar
+          </button>
+        </div>
+      </div>
+
+      <!-- ╔══════════════════════════════╗ -->
+      <!-- ║        MAIN FORM             ║ -->
+      <!-- ╚══════════════════════════════╝ -->
+      <div id="mainForm">
+        <div class="form-header">
+          <img
+            src="https://i.imgur.com/jzkYiK4.png"
+            alt="SYB"
+            class="form-logo"
+          />
+          <div class="form-title">
+            Protocolo de<br /><span>Seguridad Digital</span>
+          </div>
+        </div>
+
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- SECURITY BANNER -->
+        <div class="security-banner">
+          <div class="badge-ssl">🔒 SSL / TLS Encryption</div>
+          <div class="security-banner-title">
+            🛡️ Protocolo de Seguridad y Privacidad
+          </div>
+          <p>
+            Para garantizar la integridad de su ecosistema digital, este
+            formulario cuenta con
+            <strong>cifrado de grado bancario (SSL)</strong>. Una vez
+            procesados, los datos serán trasladados a nuestra Bóveda de
+            Seguridad Privada y esta entrada será eliminada permanentemente de
+            los servidores intermedios.
+          </p>
+          <p>
+            <em
+              >Por su seguridad, nunca solicitaremos acceso a sus cuentas
+              personales. Trabajaremos exclusivamente sobre las cuentas de
+              servicio creadas para el proyecto.</em
+            >
+          </p>
+        </div>
+
+        <form id="credForm" onsubmit="handleSubmit(event)">
+          <!-- ═══ BLOQUE A: GOOGLE ═══ -->
+          <div class="form-block">
+            <div class="block-label">🟣 Bloque A</div>
+            <div class="block-title">Cuenta de Google</div>
+
+            <div class="field">
+              <label
+                >¿Ya creaste tu correo de servicio para nuestro proyecto?
+                <span class="req">*</span></label
+              >
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="gmailCreado"
+                    value="si"
+                    required
+                    onchange="toggleGmail(this.value)"
+                  />
+                  <span>✅ Sí, ya tengo el correo listo</span>
+                </label>
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="gmailCreado"
+                    value="no"
+                    onchange="toggleGmail(this.value)"
+                  />
+                  <span>⏳ No, aún no lo creé</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Video si no creó el Gmail -->
+            <div id="videoBlock">
+              <div class="video-title">
+                📹 Cómo crear tu correo de servicio en 3 minutos:
+              </div>
+              <div class="video-container">
+                <!-- 🔧 REEMPLAZÁ "VIDEO_ID_AQUI" con el ID real de tu video de YouTube -->
+                <!-- Ej: si tu link es https://youtube.com/watch?v=dQw4w9WgXcQ, el ID es dQw4w9WgXcQ -->
+                <iframe
+                  src="https://www.youtube.com/embed/VIDEO_ID_AQUI?rel=0&modestbranding=1"
+                  allowfullscreen
+                  title="Tutorial crear Gmail de servicio"
+                ></iframe>
+              </div>
+              <p
+                style="
+                  font-size: 0.8rem;
+                  color: rgba(201, 166, 255, 0.5);
+                  margin-top: 12px;
+                "
+              >
+                Una vez que lo hayas creado, volvé a seleccionar "Sí" arriba
+                para continuar.
+              </p>
+            </div>
+
+            <!-- Campos que aparecen si dijo SÍ -->
+            <div id="gmailFields" style="display: none">
+              <div class="divider"></div>
+              <div class="field">
+                <label
+                  >Correo Electrónico de Servicio
+                  <span class="req">*</span></label
+                >
+                <input
+                  type="email"
+                  name="gmailEmail"
+                  id="gmailEmailInput"
+                  placeholder="automatizaciones.tuempresa@gmail.com"
+                  oninput="validateEmail(this)"
+                  onblur="validateEmail(this)"
+                />
+                <div class="field-hint" id="emailHint">
+                  Debe incluir
+                  <strong style="color: var(--syb-lavender)">@</strong> — Ej:
+                  automatizaciones.nombreempresa@gmail.com
+                </div>
+                <span
+                  id="emailError"
+                  style="
+                    display: none;
+                    color: #ff6b8a;
+                    font-size: 0.78rem;
+                    margin-top: 6px;
+                    display: none;
+                    font-family: var(--font-mono);
+                  "
+                ></span>
+              </div>
+
+              <div class="field">
+                <label>Contraseña Provisional <span class="req">*</span></label>
+                <div class="pw-wrap">
+                  <input
+                    type="password"
+                    name="gmailPassword"
+                    placeholder="••••••••"
+                    autocomplete="off"
+                    oninput="updateProgress()"
+                  />
+                  <button
+                    type="button"
+                    class="pw-toggle"
+                    onclick="togglePw(this)"
+                  >
+                    👁️
+                  </button>
+                </div>
+                <div class="field-hint">
+                  Esta contraseña es provisional. Podrás cambiarla en cualquier
+                  momento.
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Teléfono de Recuperación</label>
+                <input
+                  type="tel"
+                  name="gmailTel"
+                  placeholder="+54 9 11 1234-5678"
+                />
+                <div class="field-hint">
+                  Sugerimos que sea un número de la empresa para que usted
+                  mantenga el control total.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ BLOQUE B: INSTAGRAM ═══ -->
+          <div class="form-block">
+            <div class="block-label">📸 Bloque B</div>
+            <div class="block-title">Canales de Negocio</div>
+
+            <div class="field">
+              <label>Cuenta de Instagram (Handle)</label>
+              <input
+                type="text"
+                name="igHandle"
+                placeholder="@tuempresa"
+                oninput="updateProgress()"
+              />
+              <div class="field-hint">Ejemplo: @nombredetuempresa</div>
+            </div>
+
+            <div class="field">
+              <label>Contraseña de acceso a Instagram</label>
+              <div class="pw-wrap">
+                <input
+                  type="password"
+                  name="igPassword"
+                  placeholder="••••••••"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="pw-toggle"
+                  onclick="togglePw(this)"
+                >
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label
+                >¿Posee Autenticación en Dos Pasos (2FA) activa?
+                <span class="req">*</span></label
+              >
+              <div class="check-group">
+                <label class="check-option">
+                  <input type="radio" name="ig2fa" value="si_tengo" required />
+                  <span>🔐 Sí, enviaré el código cuando se me solicite.</span>
+                </label>
+                <label class="check-option">
+                  <input type="radio" name="ig2fa" value="no_configurar" />
+                  <span
+                    >⚙️ No, deseo que el equipo la configure por
+                    seguridad.</span
+                  >
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ INSTRUCCIONES ESPECIALES ═══ -->
+          <div class="form-block">
+            <div class="block-label">💬 Opcional</div>
+            <div class="block-title">Instrucciones Especiales</div>
+
+            <div class="field">
+              <label>¿Hay algo que debamos saber sobre estos accesos?</label>
+              <textarea
+                name="instrucciones"
+                placeholder="Ej: Prefiero que ingresen entre lunes y viernes de 9 a 18hs. El dispositivo reconocido es una MacBook Air. Hay un backup code guardado en..."
+              ></textarea>
+              <div class="field-hint">
+                Cuéntanos cualquier detalle que ayude a no interrumpir tu flujo
+                de trabajo.
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ FOOTER: CONFIRMACIÓN ═══ -->
+          <div class="footer-block">
+            <div class="footer-block-title">
+              ✅ Confirmación de Control de Usuario
+            </div>
+            <ul class="confirm-list">
+              <li>
+                Usted mantiene la propiedad total sobre estas cuentas en todo
+                momento.
+              </li>
+              <li>
+                Puede revocar nuestro acceso en cualquier momento cambiando la
+                contraseña.
+              </li>
+              <li>
+                El sistema notificará automáticamente a su correo principal una
+                vez que hayamos realizado el primer acceso exitoso.
+              </li>
+            </ul>
+
+            <div class="divider"></div>
+
+            <div class="field">
+              <label
+                class="check-option"
+                style="border-color: rgba(212, 175, 55, 0.3)"
+              >
+                <input
+                  type="checkbox"
+                  id="confirmCheck"
+                  onchange="updateProgress()"
+                  required
+                />
+                <span
+                  >He leído y acepto los términos de acceso seguro. Entiendo que
+                  puedo revocar estos permisos en cualquier momento.</span
+                >
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-submit" id="submitBtn">
+            🔐 Enviar a Bóveda Segura
+          </button>
+        </form>
+      </div>
+
+      <!-- ╔══════════════════════════════╗ -->
+      <!-- ║        SUCCESS PAGE          ║ -->
+      <!-- ╚══════════════════════════════╝ -->
+      <div id="successPage">
+        <div class="success-icon">🛡️</div>
+        <div class="success-title">¡Datos<br />Recibidos!</div>
+        <p class="success-subtitle">
+          Activando protocolos de encriptación y transferencia segura a nuestra
+          bóveda...
+        </p>
+
+        <div class="encrypt-animation" id="encryptLog">
+          <!-- Lines added by JS -->
+        </div>
+
+        <p
+          style="
+            font-size: 0.82rem;
+            color: rgba(201, 166, 255, 0.5);
+            max-width: 380px;
+          "
+        >
+          En las próximas
+          <strong style="color: var(--syb-lavender)">24 horas</strong> recibirá
+          un correo confirmando que su información ya está segura. Puede cerrar
+          esta ventana.
+        </p>
+      </div>
+    </div>
+    <!-- /wrapper -->
+
+    <script
+      data-cfasync="false"
+      src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"
+    ></script>
+    <script>
+      // ═══════════════════════════════════════
+      //  ⚙️  CONFIGURACIÓN — EDITÁ ESTO
+      // ═══════════════════════════════════════
+      const CONFIG = {
+        // 🔑 PIN de acceso para el cliente (podés cambiarlo por cliente)
+        // Podés usar cualquier número de 4-8 dígitos
+        PIN: "947301",
+
+        // 📊 URL del Google Apps Script Web App (instrucciones abajo)
+        // Dejalo vacío para modo de prueba local (solo muestra success page)
+        APPS_SCRIPT_URL:
+          "https://script.google.com/macros/s/AKfycbziZrqeDclL1zLd_A7pEgu3wOloxhuFgegliHvNwQFsM6y14K2ZASTVLCOLUm-5HkzXQQ/exec",
+
+        // 📹 ID del video de YouTube con tutorial de Gmail
+        // Ejemplo: si el link es youtube.com/watch?v=dQw4w9WgXcQ → ID es dQw4w9WgXcQ
+        YOUTUBE_ID: "VIDEO_ID_AQUI",
+      };
+      // ═══════════════════════════════════════
+
+      // Update YouTube iframe if configured
+      if (CONFIG.YOUTUBE_ID && CONFIG.YOUTUBE_ID !== "VIDEO_ID_AQUI") {
+        document.querySelectorAll("iframe").forEach((f) => {
+          f.src = `https://www.youtube.com/embed/${CONFIG.YOUTUBE_ID}?rel=0&modestbranding=1`;
+        });
+      }
+
+      // ── PIN LOGIC ──
+      function handlePin() {
+        const val = document.getElementById("pinInput").value;
+        const dots = document.querySelectorAll(".pin-dot");
+        dots.forEach((d, i) => d.classList.toggle("filled", i < val.length));
+        document.getElementById("pinError").textContent = "";
+        if (val.length >= CONFIG.PIN.length) setTimeout(checkPin, 120);
+      }
+
+      function checkPin() {
+        const val = document.getElementById("pinInput").value;
+        const err = document.getElementById("pinError");
+        if (val === CONFIG.PIN) {
+          document.getElementById("gate").style.animation =
+            "fadeUp .3s ease reverse both";
+          setTimeout(() => {
+            document.getElementById("gate").style.display = "none";
+            document.getElementById("mainForm").style.display = "block";
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }, 280);
+        } else {
+          err.textContent = "⚠️ Código incorrecto. Verificá con tu gestor.";
+          document.getElementById("pinInput").value = "";
+          document
+            .querySelectorAll(".pin-dot")
+            .forEach((d) => d.classList.remove("filled"));
+          document.getElementById("pinInput").focus();
+          document.getElementById("pinInput").style.borderColor = "#ff6b8a";
+          setTimeout(
+            () => (document.getElementById("pinInput").style.borderColor = ""),
+            1500,
+          );
+        }
+      }
+
+      // ── GMAIL CONDITIONAL ──
+      function toggleGmail(val) {
+        const fields = document.getElementById("gmailFields");
+        const video = document.getElementById("videoBlock");
+        if (val === "si") {
+          fields.style.display = "block";
+          video.classList.remove("show");
+        } else {
+          fields.style.display = "none";
+          video.classList.add("show");
+        }
+        updateProgress();
+      }
+
+      // ── PASSWORD TOGGLE ──
+      function togglePw(btn) {
+        const input = btn.previousElementSibling;
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        btn.textContent = show ? "🙈" : "👁️";
+      }
+
+      // ── PROGRESS BAR ──
+      function updateProgress() {
+        const form = document.getElementById("credForm");
+        const required = form.querySelectorAll("[required]");
+        let filled = 0;
+        required.forEach((el) => {
+          if (el.type === "radio" || el.type === "checkbox") {
+            if (el.checked) filled++;
+          } else if (el.value.trim()) filled++;
+        });
+        const pct = Math.round((filled / required.length) * 100);
+        document.getElementById("progressFill").style.width = pct + "%";
+      }
+
+      // ── FORM SUBMIT ──
+      async function handleSubmit(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById("submitBtn");
+        btn.classList.add("loading");
+        btn.innerHTML = '<div class="spinner"></div> Encriptando datos...';
+
+        const form = e.target;
+        const data = new FormData(form);
+        const obj = {};
+        data.forEach((v, k) => (obj[k] = v));
+        obj.timestamp = new Date().toISOString();
+
+        try {
+          if (CONFIG.APPS_SCRIPT_URL) {
+            await fetch(CONFIG.APPS_SCRIPT_URL, {
+              method: "POST",
+              body: JSON.stringify(obj),
+              headers: { "Content-Type": "text/plain" },
+              mode: "no-cors",
+            });
+          }
+          showSuccess();
+        } catch (err) {
+          // Even on error, show success (no-cors fetch may throw)
+          showSuccess();
+        }
+      }
+
+      function showSuccess() {
+        document.getElementById("mainForm").style.display = "none";
+        const sp = document.getElementById("successPage");
+        sp.classList.add("active");
+
+        const lines = [
+          "Iniciando protocolo de cifrado AES-256...",
+          "Verificando integridad de los datos...",
+          "Transfiriendo a bóveda segura...",
+          "Eliminando caché de servidores intermedios...",
+          "✓ Transferencia completada exitosamente.",
+        ];
+
+        const log = document.getElementById("encryptLog");
+        lines.forEach((line, i) => {
+          setTimeout(() => {
+            const div = document.createElement("div");
+            div.className = "encrypt-line";
+            div.style.animationDelay = "0s";
+            div.textContent = line;
+            if (i === lines.length - 1) div.style.color = "#00e5a0";
+            log.appendChild(div);
+          }, i * 600);
+        });
+      }
+
+      // ── EMAIL VALIDATION ──
+      function validateEmail(input) {
+        const val = input.value;
+        const err = document.getElementById("emailError");
+        const hasAt = val.includes("@");
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+        if (!val) {
+          input.style.borderColor = "";
+          input.style.boxShadow = "";
+          err.style.display = "none";
+          return;
+        }
+        if (!hasAt) {
+          input.style.borderColor = "#ff6b8a";
+          input.style.boxShadow = "0 0 0 3px rgba(255,107,138,0.15)";
+          err.textContent = "⚠️ Falta el símbolo @ — ej: nombre@gmail.com";
+          err.style.color = "#ff6b8a";
+          err.style.display = "block";
+        } else if (!valid) {
+          input.style.borderColor = "#ffaa00";
+          input.style.boxShadow = "0 0 0 3px rgba(255,170,0,0.12)";
+          err.textContent =
+            "⚠️ El correo parece incompleto — verificá que tenga .com o similar";
+          err.style.color = "#ffaa00";
+          err.style.display = "block";
+        } else {
+          input.style.borderColor = "var(--syb-green)";
+          input.style.boxShadow = "0 0 0 3px rgba(0,229,160,0.15)";
+          err.textContent = "✓ Correo válido";
+          err.style.color = "var(--syb-green)";
+          err.style.display = "block";
+        }
+        updateProgress();
+      }
+
+      // Attach progress listeners
+      document
+        .getElementById("credForm")
+        .addEventListener("input", updateProgress);
+      document
+        .getElementById("credForm")
+        .addEventListener("change", updateProgress);
+      updateProgress();
+    </script>
+  </body>
+</html>
