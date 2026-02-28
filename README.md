@@ -1,1 +1,0 @@
-# scaleyourbusiness.github.io
